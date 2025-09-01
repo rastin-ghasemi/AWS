@@ -219,3 +219,19 @@ Step 5: Enable Static Website Hosting (Optional but Recommended)
 ```bash
 aws s3 website s3://$BUCKET_NAME/ --index-document index.html --error-document error.html
 ```
+Step 6: Test the Configuration
+```bash
+# Upload a test file
+echo "Hello from example.com!" > test.txt
+aws s3 cp test.txt s3://$BUCKET_NAME/
+
+# Get the bucket URL
+echo "Bucket URL: https://$BUCKET_NAME.s3.amazonaws.com"
+echo "Website URL: http://$BUCKET_NAME.s3-website-us-east-1.amazonaws.com"
+
+# Test CORS configuration
+aws s3api get-bucket-cors --bucket $BUCKET_NAME
+
+# Test bucket policy
+aws s3api get-bucket-policy --bucket $BUCKET_NAME --query Policy --output text | python -m json.tool
+```
