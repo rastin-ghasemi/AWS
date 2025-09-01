@@ -59,3 +59,4 @@ Key Integration Categories:
         FileCloud (Enterprise File Sync and Share - EFSS)
 
         OneLogin (Workforce Identity & Access Management)
+        

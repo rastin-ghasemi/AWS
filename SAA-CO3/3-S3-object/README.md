@@ -32,7 +32,7 @@ aws s3api head-object --bicket name-bucket --key name-file
 
 ## S3 object prefixes (virtual folder)
 s3 object prefixes are string that proceed the objext filename and is part of the objet name.
-since allobject in a bucket are stored in flat structured hierarchy, object prefixed allows  for a way to organize , group and filter objects.
+since all object in a bucket are stored in flat structured hierarchy, object prefixed allows  for a way to organize , group and filter objects.
 
 a prefix use th forward slash "/" as delimitator to group similar data, similar to directory or subdirectoris.
 - prefixed are not true folders.
@@ -65,7 +65,11 @@ aws s3api list-objects-v2 \
   --prefix "projects/" \
   --max-items 100 \
   --starting-token "nextToken"
+
+What is a "Next Token"?
+A next token (also often called a continuation token) is a unique, opaque string that acts as a bookmark. It tells AWS, "I've already received the first N items, now give me the next batch starting from where I left off."
 ```
+
 3. **Copy/Move Objects by Prefix**
 ```bash
 # Copy all objects with prefix
@@ -235,12 +239,85 @@ aws configure set default.s3.addressing_style path
 
 ## Amazon S3 Storage Classes
 Amazon S3 offers multiple storage classes designed for different use cases based on access patterns, durability, and cost requirements.
-**change storage class CLI**
-```bash
-# Use virtual hosted-style (default)
-aws configure set default.s3.use_accelerate_endpoint false
-aws configure set default.s3.addressing_style virtual
+1. Copying the object onto itself (most common for existing objects).
 
-# Force path-style (not recommended)
-aws configure set default.s3.addressing_style path
+2. Configuring a lifecycle policy (automatic and cost-effective for many objects).
+
+The best method depends on whether you are doing a one-time change or want an automated, ongoing rule.
+**change storage class CLI**
+
+**Method 1:** Copy the Object onto Itself (For Specific Objects)
+This is the direct method for changing the storage class of an existing object. You essentially copy the object from its current key/name to the same key/name while specifying a new storage class.
+
+Basic Command Syntax:
+```bash
+aws s3 cp s3://my-bucket/path/to/file.txt s3://my-bucket/path/to/file.txt \
+  --storage-class <STORAGE_CLASS> \
+  --recursive # Optional: to change an entire directory
+
+Important Considerations for this Method:
+
+Cost: This operation involves a COPY request (which has a cost) and potentially retrieval fees if the source object is in a cold storage class like Glacier.
+
+Versioning: If the bucket has versioning enabled, this cp operation will create a new version of the object with the new storage class. The old version will remain in its original storage class.
+
+Metadata: You may need to explicitly preserve metadata using --metadata-directive COPY if you have custom metadata.
+
+
+```
+
+**Method 2:** Lifecycle Configuration (Automated & Recommended)
+For ongoing management, especially for things like log files, backups, or data that ages, Lifecycle Rules are the preferred and most cost-effective method. You define a rule once, and it automatically transitions objects between storage classes based on their age.
+
+Steps:
+
+1. Create a Lifecycle JSON Configuration File
+
+Create a file, e.g., lifecycle-config.json. This example does two things:
+
+- Transitions objects to STANDARD_IA after 30 days.
+
+- Transitions them to GLACIER after 90 days.
+
+```bash
+ 
+ nano file.json
+
+{
+  "Rules": [
+    {
+      "ID": "MoveToGlacierRule",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "backups/" // This rule applies to objects with this prefix
+      },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER"
+        }
+      ]
+    }
+  ]
+}
+
+```
+2. Apply the Lifecycle Rule to your S3 Bucket
+
+Use the s3api command to apply the configuration.
+
+```bash
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket my-bucket \
+  --lifecycle-configuration file://lifecycle-config.json
+```
+
+3. Verify the Rule was Applied
+
+```bash
+aws s3api get-bucket-lifecycle-configuration --bucket my-bucket
 ```
