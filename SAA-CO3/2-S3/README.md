@@ -152,6 +152,13 @@ aws s3api list-buckets --query "Buckets[].Name" --output table
     --bucket amzn-s3-demo-bucket \
     --key my-dir/MySampleImage.png \
     --body MySampleImage.png
+
+
+Take the local file ./MySampleImage.png
+
+Upload it to the bucket named amzn-s3-demo-bucket
+
+Store it there under the "directory" my-dir with the name MySampleImage.png
 ```
 2. **Example 2: Upload a video file to Amazon S3**
 ```bash
