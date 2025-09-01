@@ -30,7 +30,78 @@ Example: "Delete old log files 365 days after creation."
 
 **Special Case:** Expire current versions of objects and Permanently delete previous versions are crucial for versioned buckets.
 
-## When Should You Use It?
+## Demo
+creating a backup bucket with best practices and the lifecycle policy you specified.
+
+Step 1: Create the S3 Bucket
+
+First, choose a globally unique bucket name and create the bucket. We'll enable versioning and block public access by default, which are critical best practices for backups.
+
+```bash
+# Create the bucket (replace 'my-unique-backup-bucket-name' with your name)
+aws s3api create-bucket \
+    --bucket my-unique-backup-bucket-name \
+    --region us-east-1  # Change your region if needed
+
+# Enable Versioning (protects against accidental deletion/overwrite)
+aws s3api put-bucket-versioning \
+    --bucket my-unique-backup-bucket-name \
+    --versioning-configuration Status=Enabled
+
+# Confirm Block Public Access is ON (It should be by default, but let's verify/set it)
+aws s3api put-public-access-block \
+    --bucket my-unique-backup-bucket-name \
+    --public-access-block-configuration \
+    "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+```
+Step 2: Create the Lifecycle Policy JSON File
+
+Create a file named lifecycle-policy.json on your local machine with the following content. This policy does exactly what you asked for:
+
+1. Transitions objects to the STANDARD_IA storage class after 15 days.
+
+2. Expires (permanently deletes) object versions after 3 months (90 days).
+
+File: lifecycle-policy.json
+
+```bash
+{
+  "Rules": [
+    {
+      "ID": "BackupRetentionRule",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "" 
+      },
+      "Transitions": [
+        {
+          "Days": 15,
+          "StorageClass": "STANDARD_IA"
+        }
+      ],
+      "Expirations": {
+        "Days": 90
+      }
+    }
+  ]
+}
+```
+
+Step 3: Apply the Lifecycle Policy to Your Bucket
+
+```bash
+aws s3api put-bucket-lifecycle-configuration \
+    --bucket my-unique-backup-bucket-name \
+    --lifecycle-configuration file://lifecycle-policy.json
+```
+Step 4: Verify the Configuration
+
+Check the lifecycle policy:
+```bash
+aws s3api get-bucket-lifecycle-configuration --bucket my-unique-backup-bucket-name
+```
+
+## When Should You Use Transfer Acceleration?
 Transfer Acceleration is ideal for:
 
 **Global Clients:** You have users around the world uploading to a central S3 bucket in a single region.
