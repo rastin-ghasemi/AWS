@@ -24,7 +24,6 @@ S3 is a universal namespace so bucket names must be unique (think like having a 
 
 ## command 
 
-we 
 ```bash
 # high level s3 command
 aws s3 
